@@ -1,6 +1,7 @@
 package com.example
 
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
@@ -594,34 +595,152 @@ fun ProfileScreen(
                             iconColor = Color(0xFF4B5563),
                             onClick = onNavigateToSettings
                         )
+                    }
+                }
 
-                        // If logged in, show logout and delete account
-                        if (currentUser != null) {
-                            ProfileDivider()
-                            ProfileOptionRow(
-                                title = if (GlobalLanguage.isEnglish) "Sign Out" else "লগআউট করুন",
-                                icon = Icons.Filled.Logout,
-                                iconColor = Color.Red,
-                                onClick = {
-                                    scope.launch {
-                                        auth.signOut()
-                                        currentUser = null
-                                        Toast.makeText(context, if (GlobalLanguage.isEnglish) "Logged out successfully" else "সফলভাবে লগআউট করা হয়েছে", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            )
+                Spacer(modifier = Modifier.height(10.dp))
 
-                            ProfileDivider()
-                            ProfileOptionRow(
-                                title = if (GlobalLanguage.isEnglish) "Delete Account" else "অ্যাকাউন্ট মুছে ফেলুন",
-                                icon = Icons.Filled.Delete,
-                                iconColor = Color.Red,
-                                onClick = {
-                                    // Normally shows a confirmation dialog
-                                    Toast.makeText(context, if (GlobalLanguage.isEnglish) "Account deletion request sent" else "অ্যাকাউন্ট মুছে ফেলার অনুরোধ পাঠানো হয়েছে", Toast.LENGTH_LONG).show()
+                // 4. Support Card
+                Text(
+                    text = if (GlobalLanguage.isEnglish) "Support" else "সাপোর্ট",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = TextDark,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        // Support WhatsApp
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Support WhatsApp" else "সাপোর্ট হোয়াটসঅ্যাপ",
+                            icon = Icons.Filled.Chat,
+                            iconColor = Color(0xFF25D366),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+
+                        ProfileDivider()
+
+                        // Support Telegram
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Support Telegram" else "সাপোর্ট টেলিগ্রাম",
+                            icon = Icons.Filled.Send,
+                            iconColor = Color(0xFF0088CC),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+
+                        ProfileDivider()
+
+                        // Facebook Group
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Facebook Group" else "ফেসবুক গ্রুপ",
+                            icon = Icons.Filled.Groups,
+                            iconColor = Color(0xFF1877F2),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://facebook.com/groups/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+
+                        ProfileDivider()
+
+                        // WhatsApp Group
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "WhatsApp Group" else "হোয়াটসঅ্যাপ গ্রুপ",
+                            icon = Icons.Filled.Group,
+                            iconColor = Color(0xFF128C7E),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://chat.whatsapp.com/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+
+                        ProfileDivider()
+
+                        // Telegram Group
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Telegram Group" else "টেলিগ্রাম গ্রুপ",
+                            icon = Icons.Filled.Forum,
+                            iconColor = Color(0xFF0088CC),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+
+                        ProfileDivider()
+
+                        // Telegram Channel
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Telegram Channel" else "টেলিগ্রাম চ্যানেল",
+                            icon = Icons.Filled.Campaign,
+                            iconColor = Color(0xFF0088CC),
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/"))
+                                try { context.startActivity(intent) } catch (e: Exception) { }
+                            }
+                        )
+                    }
+                }
+
+                // If logged in, show logout and delete account as separate cards
+                if (currentUser != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    // Logout Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Sign Out" else "লগআউট করুন",
+                            icon = Icons.Filled.Logout,
+                            iconColor = Color.Red,
+                            onClick = {
+                                scope.launch {
+                                    auth.signOut()
+                                    currentUser = null
+                                    Toast.makeText(context, if (GlobalLanguage.isEnglish) "Logged out successfully" else "সফলভাবে লগআউট করা হয়েছে", Toast.LENGTH_SHORT).show()
                                 }
-                            )
-                        }
+                            }
+                        )
+                    }
+                    
+                    // Delete Account Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        ProfileOptionRow(
+                            title = if (GlobalLanguage.isEnglish) "Delete Account" else "অ্যাকাউন্ট মুছে ফেলুন",
+                            icon = Icons.Filled.Delete,
+                            iconColor = Color.Red,
+                            onClick = {
+                                // Normally shows a confirmation dialog
+                                Toast.makeText(context, if (GlobalLanguage.isEnglish) "Account deletion request sent" else "অ্যাকাউন্ট মুছে ফেলার অনুরোধ পাঠানো হয়েছে", Toast.LENGTH_LONG).show()
+                            }
+                        )
                     }
                 }
 
