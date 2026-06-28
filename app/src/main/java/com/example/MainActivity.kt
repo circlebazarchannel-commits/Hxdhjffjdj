@@ -181,61 +181,63 @@ class MainActivity : ComponentActivity() {
                     } else {
                         // Real-time Circle Alert Regional Notification Listener
                         LaunchedEffect(context) {
-                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            val sharedPrefs = context.getSharedPreferences("profile_prefs", Activity.MODE_PRIVATE)
-                            val userDistrict = sharedPrefs.getString("location", "All Bangladesh") ?: "All Bangladesh"
-                            val trackerDb = com.example.database.TrackerDatabase.getDatabase(context)
-                            val notificationDao = trackerDb.notificationDao()
-                            
-                            db.collection("videos")
-                                .whereEqualTo("isCircleAlert", true)
-                                .whereEqualTo("status", "APPROVED")
-                                .addSnapshotListener { snapshots, e ->
-                                    if (e != null) return@addSnapshotListener
-                                    if (snapshots != null) {
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            for (doc in snapshots.documentChanges) {
-                                                if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
-                                                    val data = doc.document.data
-                                                    val alertLocation = data["location"] as? String ?: "All Bangladesh"
-                                                    val title = data["title"] as? String ?: "Alert"
-                                                    val category = data["alertCategory"] as? String ?: ""
-                                                    val docId = doc.document.id
-                                                    
-                                                    // Only notify if location matches or it's nationwide, and not already notified
-                                                    if ((alertLocation == "All Bangladesh" || alertLocation == userDistrict) && 
-                                                        notificationDao.countByRemoteId("alert_$docId") == 0) {
+                            try {
+                                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                val sharedPrefs = context.getSharedPreferences("profile_prefs", Activity.MODE_PRIVATE)
+                                val userDistrict = sharedPrefs.getString("location", "All Bangladesh") ?: "All Bangladesh"
+                                val trackerDb = com.example.database.TrackerDatabase.getDatabase(context)
+                                val notificationDao = trackerDb.notificationDao()
+                                
+                                db.collection("videos")
+                                    .whereEqualTo("isCircleAlert", true)
+                                    .whereEqualTo("status", "APPROVED")
+                                    .addSnapshotListener { snapshots, e ->
+                                        if (e != null) return@addSnapshotListener
+                                        if (snapshots != null) {
+                                            CoroutineScope(Dispatchers.IO).launch {
+                                                for (doc in snapshots.documentChanges) {
+                                                    if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                                                        val data = doc.document.data
+                                                        val alertLocation = data["location"] as? String ?: "All Bangladesh"
+                                                        val title = data["title"] as? String ?: "Alert"
+                                                        val category = data["alertCategory"] as? String ?: ""
+                                                        val docId = doc.document.id
                                                         
-                                                        val isEnglish = GlobalLanguage.isEnglish
-                                                        val notifTitle = if (isEnglish) "🔴 Real-time Alert: $title" else "🔴 রিয়েল-টাইম অ্যালার্ট: $title"
-                                                        val notifBody = if (isEnglish) "Area: $alertLocation | Type: $category" else "এলাকা: $alertLocation | ধরন: $category"
-                                                        
-                                                        val entity = com.example.database.NotificationEntity(
-                                                            title = notifTitle,
-                                                            body = notifBody,
-                                                            timestamp = System.currentTimeMillis(),
-                                                            type = "GENERAL",
-                                                            actorName = data["author"] as? String ?: "Halal Circle",
-                                                            remoteId = "alert_$docId"
-                                                        )
-                                                        notificationDao.insertNotification(entity)
-                                                        
-                                                        // Show push notification
-                                                        val ctx = context
-                                                        val notifManager = ctx.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                                                        val builder = androidx.core.app.NotificationCompat.Builder(ctx, "halal_circle_notifs")
-                                                            .setSmallIcon(R.drawable.ic_launcher_foreground)
-                                                            .setContentTitle(notifTitle)
-                                                            .setContentText(notifBody)
-                                                            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-                                                            .setAutoCancel(true)
-                                                        notifManager.notify("alert_$docId".hashCode(), builder.build())
+                                                        if ((alertLocation == "All Bangladesh" || alertLocation == userDistrict) && 
+                                                            notificationDao.countByRemoteId("alert_$docId") == 0) {
+                                                            
+                                                            val isEnglish = GlobalLanguage.isEnglish
+                                                            val notifTitle = if (isEnglish) "🔴 Real-time Alert: $title" else "🔴 রিয়েল-টাইম অ্যালার্ট: $title"
+                                                            val notifBody = if (isEnglish) "Area: $alertLocation | Type: $category" else "এলাকা: $alertLocation | ধরন: $category"
+                                                            
+                                                            val entity = com.example.database.NotificationEntity(
+                                                                title = notifTitle,
+                                                                body = notifBody,
+                                                                timestamp = System.currentTimeMillis(),
+                                                                type = "GENERAL",
+                                                                actorName = data["author"] as? String ?: "Halal Circle",
+                                                                remoteId = "alert_$docId"
+                                                            )
+                                                            notificationDao.insertNotification(entity)
+                                                            
+                                                            val ctx = context
+                                                            val notifManager = ctx.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                                                            val builder = androidx.core.app.NotificationCompat.Builder(ctx, "halal_circle_notifs")
+                                                                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                                                                .setContentTitle(notifTitle)
+                                                                .setContentText(notifBody)
+                                                                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                                                .setAutoCancel(true)
+                                                            notifManager.notify("alert_$docId".hashCode(), builder.build())
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
 
                         val viewModel: PrayerViewModel = viewModel()
@@ -249,90 +251,92 @@ class MainActivity : ComponentActivity() {
 
                         // Notification Sync Logic
                         LaunchedEffect(context) {
-                            val supabase = Supabase.client
-                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            val trackerDb = com.example.database.TrackerDatabase.getDatabase(context)
-                            val notificationDao = trackerDb.notificationDao()
+                            try {
+                                val supabase = Supabase.client
+                                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                val trackerDb = com.example.database.TrackerDatabase.getDatabase(context)
+                                val notificationDao = trackerDb.notificationDao()
 
-                            supabase.auth.sessionStatus.collect { status ->
-                                if (status is SessionStatus.Authenticated) {
-                                    val user = status.session.user
-                                    if (user != null) {
-                                        db.collection("remote_notifications")
-                                            .whereEqualTo("toId", user.id)
-                                            .addSnapshotListener { snapshots, e ->
-                                            if (e != null) return@addSnapshotListener
-                                            if (snapshots != null) {
-                                                CoroutineScope(Dispatchers.IO).launch {
-                                                    for (doc in snapshots.documentChanges) {
-                                                        if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
-                                                            val remoteId = doc.document.id
-                                                            if (notificationDao.countByRemoteId(remoteId) == 0) {
-                                                                val data = doc.document.data
-                                                                val type = data["type"] as? String ?: "GENERAL"
-                                                                val isEnglish = GlobalLanguage.isEnglish
-                                                                
-                                                                var title = data["title"] as? String ?: "Notification"
-                                                                var body = data["body"] as? String ?: ""
-                                                                
-                                                                // Localize specific video status update notifications from Admin
-                                                                when (type) {
-                                                                    "APPROVE", "APPROVED" -> {
-                                                                        title = if (isEnglish) "Video Approved" else "ভিডিও অ্যাপ্রুভ হয়েছে"
-                                                                        body = if (isEnglish) "Your video has been approved." else "আপনার ভিডিওটি এডমিন কর্তৃক অ্যাপ্রুভ করা হয়েছে।"
+                                supabase.auth.sessionStatus.collect { status ->
+                                    if (status is SessionStatus.Authenticated) {
+                                        val user = status.session.user
+                                        if (user != null) {
+                                            db.collection("remote_notifications")
+                                                .whereEqualTo("toId", user.id)
+                                                .addSnapshotListener { snapshots, e ->
+                                                if (e != null) return@addSnapshotListener
+                                                if (snapshots != null) {
+                                                    CoroutineScope(Dispatchers.IO).launch {
+                                                        for (doc in snapshots.documentChanges) {
+                                                            if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                                                                val remoteId = doc.document.id
+                                                                if (notificationDao.countByRemoteId(remoteId) == 0) {
+                                                                    val data = doc.document.data
+                                                                    val type = data["type"] as? String ?: "GENERAL"
+                                                                    val isEnglish = GlobalLanguage.isEnglish
+                                                                    
+                                                                    var title = data["title"] as? String ?: "Notification"
+                                                                    var body = data["body"] as? String ?: ""
+                                                                    
+                                                                    when (type) {
+                                                                        "APPROVE", "APPROVED" -> {
+                                                                            title = if (isEnglish) "Video Approved" else "ভিডিও অ্যাপ্রুভ হয়েছে"
+                                                                            body = if (isEnglish) "Your video has been approved." else "আপনার ভিডিওটি এডমিন কর্তৃক অ্যাপ্রুভ করা হয়েছে।"
+                                                                        }
+                                                                        "REJECT", "REJECTED" -> {
+                                                                            title = if (isEnglish) "Video Rejected" else "ভিডিও রিজেক্ট হয়েছে"
+                                                                            body = if (isEnglish) "Your video submission was not approved." else "আপনার ভিডিওটি এডমিন কর্তৃক রিজেক্ট করা হয়েছে।"
+                                                                        }
+                                                                        "DELETE", "DELETED" -> {
+                                                                            title = if (isEnglish) "Video Deleted" else "ভিডিও মুছে ফেলা হয়েছে"
+                                                                            body = if (isEnglish) "A video was deleted by the admin." else "আপনার ভিডিওটি এডমিন কর্তৃক ডিলেট করা হয়েছে।"
+                                                                        }
                                                                     }
-                                                                    "REJECT", "REJECTED" -> {
-                                                                        title = if (isEnglish) "Video Rejected" else "ভিডিও রিজেক্ট হয়েছে"
-                                                                        body = if (isEnglish) "Your video submission was not approved." else "আপনার ভিডিওটি এডমিন কর্তৃক রিজেক্ট করা হয়েছে।"
-                                                                    }
-                                                                    "DELETE", "DELETED" -> {
-                                                                        title = if (isEnglish) "Video Deleted" else "ভিডিও মুছে ফেলা হয়েছে"
-                                                                        body = if (isEnglish) "A video was deleted by the admin." else "আপনার ভিডিওটি এডমিন কর্তৃক ডিলেট করা হয়েছে।"
-                                                                    }
-                                                                }
 
-                                                                val entity = com.example.database.NotificationEntity(
-                                                                    title = title,
-                                                                    body = body,
-                                                                    timestamp = data["timestamp"] as? Long ?: System.currentTimeMillis(),
-                                                                    type = type,
-                                                                    actorName = data["actorName"] as? String ?: "System",
-                                                                    remoteId = remoteId
-                                                                )
-                                                                notificationDao.insertNotification(entity)
-                                                                
-                                                                // Show local push notification
-                                                                val ctx = context
-                                                                val notifManager = ctx.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-                                                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                                                    val channel = android.app.NotificationChannel("halal_circle_notifs", "General Notifications", android.app.NotificationManager.IMPORTANCE_DEFAULT)
-                                                                    notifManager.createNotificationChannel(channel)
+                                                                    val entity = com.example.database.NotificationEntity(
+                                                                        title = title,
+                                                                        body = body,
+                                                                        timestamp = data["timestamp"] as? Long ?: System.currentTimeMillis(),
+                                                                        type = type,
+                                                                        actorName = data["actorName"] as? String ?: "System",
+                                                                        remoteId = remoteId
+                                                                    )
+                                                                    notificationDao.insertNotification(entity)
+                                                                    
+                                                                    val ctx = context
+                                                                    val notifManager = ctx.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                                                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                                                        val channel = android.app.NotificationChannel("halal_circle_notifs", "General Notifications", android.app.NotificationManager.IMPORTANCE_DEFAULT)
+                                                                        notifManager.createNotificationChannel(channel)
+                                                                    }
+                                                                    val notifyIntent = Intent(ctx, MainActivity::class.java).apply {
+                                                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                                        putExtra("open_notifications", true)
+                                                                    }
+                                                                    val notifyPendingIntent = android.app.PendingIntent.getActivity(
+                                                                        ctx, 0, notifyIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                                                                    )
+                                                                    val builder = androidx.core.app.NotificationCompat.Builder(ctx, "halal_circle_notifs")
+                                                                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                                                                        .setContentTitle(entity.title)
+                                                                        .setContentText(entity.body)
+                                                                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                                                                        .setAutoCancel(true)
+                                                                        .setContentIntent(notifyPendingIntent)
+                                                                    notifManager.notify(remoteId.hashCode(), builder.build())
                                                                 }
-                                                                val notifyIntent = Intent(ctx, MainActivity::class.java).apply {
-                                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                                    putExtra("open_notifications", true)
-                                                                }
-                                                                val notifyPendingIntent = android.app.PendingIntent.getActivity(
-                                                                    ctx, 0, notifyIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                                                                )
-                                                                val builder = androidx.core.app.NotificationCompat.Builder(ctx, "halal_circle_notifs")
-                                                                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                                                                    .setContentTitle(entity.title)
-                                                                    .setContentText(entity.body)
-                                                                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
-                                                                    .setAutoCancel(true)
-                                                                    .setContentIntent(notifyPendingIntent)
-                                                                notifManager.notify(remoteId.hashCode(), builder.build())
                                                             }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
                             }
                         }
-                    }
 
                     val permissions = remember {
                             val list = mutableListOf(
